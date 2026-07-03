@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Home from '@/pages/Home'
 import Dashboard from '@/pages/Dashboard'
 import GuestList from '@/pages/GuestList'
+import DesignSystem from '@/pages/DesignSystem'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -21,6 +22,7 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/guests" element={<GuestList />} />
+          <Route path="/design-system" element={<DesignSystem />} />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>
