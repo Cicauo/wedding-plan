@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2, Plus } from 'lucide-react'
@@ -34,8 +35,13 @@ import { vendorFormSchema, type VendorFormValues } from './schema'
  * and closes + resets on success. CurrencyInput/Select are
  * controlled via RHF Controller.
  */
-export function AddVendorDialog() {
+export function AddVendorDialog({
+  triggerLabel = 'Tambah Vendor',
+}: {
+  triggerLabel?: string
+}) {
   const [open, setOpen] = useState(false)
+  const navigate = useNavigate()
   const addVendor = useAddVendor()
 
   const {
@@ -57,9 +63,12 @@ export function AddVendorDialog() {
 
   const onSubmit = (values: VendorFormValues) => {
     addVendor.mutate(values, {
-      onSuccess: () => {
+      onSuccess: (created) => {
         reset()
         setOpen(false)
+        // Progressive disclosure: drop the user straight into the
+        // detail page to set up payment terms.
+        navigate(`/vendors/${created.id}`)
       },
     })
   }
@@ -73,7 +82,7 @@ export function AddVendorDialog() {
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button>
-          <Plus /> Tambah Vendor
+          <Plus /> {triggerLabel}
         </Button>
       </DialogTrigger>
       <DialogContent>
@@ -176,7 +185,7 @@ export function AddVendorDialog() {
             </DialogClose>
             <Button type="submit" disabled={addVendor.isPending}>
               {addVendor.isPending && <Loader2 className="animate-spin" />}
-              Simpan
+              Simpan & Atur Pembayaran
             </Button>
           </DialogFooter>
         </form>

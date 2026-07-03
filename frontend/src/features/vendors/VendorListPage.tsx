@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { PartyPopper, Search, Trash2, AlertCircle } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -47,6 +48,7 @@ function VendorGridSkeleton() {
 
 export default function VendorListPage() {
   const { data: vendors, isLoading, isError, refetch } = useVendorsWithProgress()
+  const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState<VendorCategory | typeof ALL>(ALL)
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(
@@ -124,9 +126,9 @@ export default function VendorListPage() {
       ) : !hasVendors ? (
         <EmptyState
           icon={PartyPopper}
-          title="Belum ada vendor"
-          description="Mulai dengan menambahkan vendor pertama untuk pernikahanmu."
-          action={<AddVendorDialog />}
+          title="Kelola semua vendormu di satu tempat."
+          description="Pantau kontrak, jadwal pembayaran, dan sisa tagihan tiap vendor — semuanya dalam satu pandangan yang bikin tenang."
+          action={<AddVendorDialog triggerLabel="Tambah Vendor Pertamamu" />}
         />
       ) : filtered.length === 0 ? (
         <EmptyState
@@ -138,10 +140,16 @@ export default function VendorListPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((vendor) => (
             <div key={vendor.id} className="group relative">
-              <VendorCard vendor={vendor} />
+              <VendorCard
+                vendor={vendor}
+                onClick={() => navigate(`/vendors/${vendor.id}`)}
+              />
               <button
                 type="button"
-                onClick={() => setDeleteTarget({ id: vendor.id, name: vendor.name })}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setDeleteTarget({ id: vendor.id, name: vendor.name })
+                }}
                 className="absolute right-3 top-3 rounded-md p-1.5 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-hover:opacity-100"
                 aria-label={`Hapus ${vendor.name}`}
               >
