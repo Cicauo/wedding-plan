@@ -1,5 +1,6 @@
 import { AlertTriangle } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { formatRupiah } from '@/lib/currency'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { PaymentProgressBar } from '@/components/wedding/payment-progress-bar'
 import { VENDOR_CATEGORY_LABELS, type VendorWithProgress } from '@/types/domain'
@@ -58,9 +59,24 @@ export function VendorCard({ vendor, onClick, className }: VendorCardProps) {
           total={vendor.totalContract}
           hasOverdue={vendor.hasOverdue}
         />
-        <p className="mt-2 text-xs text-muted-foreground">
-          {vendor.paidTermCount} dari {vendor.termCount} termin lunas
-        </p>
+        <div className="mt-3 flex items-end justify-between gap-2">
+          <div>
+            <p className="text-xs text-muted-foreground">Sisa Tagihan</p>
+            <p
+              className={cn(
+                'text-lg font-bold tabular-nums',
+                vendor.remainingAmount === 0
+                  ? 'text-status-paid-subtle-foreground'
+                  : 'text-foreground',
+              )}
+            >
+              {formatRupiah(vendor.remainingAmount)}
+            </p>
+          </div>
+          <p className="pb-0.5 text-xs text-muted-foreground">
+            {vendor.paidTermCount}/{vendor.termCount} termin lunas
+          </p>
+        </div>
       </CardContent>
     </Card>
   )

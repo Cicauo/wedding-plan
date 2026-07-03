@@ -105,6 +105,10 @@ export interface PaymentTerm {
  */
 export interface VendorWithProgress extends Vendor {
   paidAmount: Rupiah;
+  /** Sisa Tagihan = total − paid. The number users look for most. */
+  remainingAmount: Rupiah;
+  /** total − SUM(all term amounts). >0 means money not yet scheduled. */
+  unscheduledAmount: Rupiah;
   /** 0..1 ratio of paidAmount / totalContract. */
   progress: number;
   termCount: number;
@@ -134,6 +138,7 @@ export function computeVendorProgress(
   const vendorTerms = terms.filter((t) => t.vendorId === vendor.id);
   const paidTerms = vendorTerms.filter((t) => t.status === 'PAID');
   const paidAmount = paidTerms.reduce((sum, t) => sum + t.amount, 0);
+  const scheduledAmount = vendorTerms.reduce((sum, t) => sum + t.amount, 0);
   const hasOverdue = vendorTerms.some(
     (t) => derivePaymentStatus(t, now) === 'OVERDUE',
   );
@@ -141,6 +146,8 @@ export function computeVendorProgress(
   return {
     ...vendor,
     paidAmount,
+    remainingAmount: Math.max(vendor.totalContract - paidAmount, 0),
+    unscheduledAmount: vendor.totalContract - scheduledAmount,
     progress:
       vendor.totalContract > 0 ? paidAmount / vendor.totalContract : 0,
     termCount: vendorTerms.length,

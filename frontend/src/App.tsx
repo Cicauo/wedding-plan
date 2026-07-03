@@ -13,6 +13,7 @@ const Dashboard = lazy(() => import('@/pages/Dashboard'))
 const GuestList = lazy(() => import('@/pages/GuestList'))
 const DesignSystem = lazy(() => import('@/pages/DesignSystem'))
 const VendorListPage = lazy(() => import('@/features/vendors/VendorListPage'))
+const VendorDetailPage = lazy(() => import('@/features/vendors/VendorDetailPage'))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -41,6 +42,7 @@ export default function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/guests" element={<GuestList />} />
             <Route path="/vendors" element={<VendorListPage />} />
+            <Route path="/vendors/:vendorId" element={<VendorDetailPage />} />
             <Route path="/design-system" element={<DesignSystem />} />
           </Routes>
         </Suspense>
