@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
+import { AppNav } from '@/components/wedding/app-nav'
 
 /**
  * Route-level code splitting: each page is a separate chunk, so the
@@ -14,6 +15,8 @@ const GuestList = lazy(() => import('@/pages/GuestList'))
 const DesignSystem = lazy(() => import('@/pages/DesignSystem'))
 const VendorListPage = lazy(() => import('@/features/vendors/VendorListPage'))
 const VendorDetailPage = lazy(() => import('@/features/vendors/VendorDetailPage'))
+const TodoListPage = lazy(() => import('@/features/planning/TodoListPage'))
+const BudgetPage = lazy(() => import('@/features/planning/BudgetPage'))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -36,6 +39,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        <AppNav />
         <Suspense fallback={<RouteFallback />}>
           <Routes>
             <Route path="/" element={<Home />} />
@@ -43,6 +47,8 @@ export default function App() {
             <Route path="/guests" element={<GuestList />} />
             <Route path="/vendors" element={<VendorListPage />} />
             <Route path="/vendors/:vendorId" element={<VendorDetailPage />} />
+            <Route path="/todos" element={<TodoListPage />} />
+            <Route path="/budget" element={<BudgetPage />} />
             <Route path="/design-system" element={<DesignSystem />} />
           </Routes>
         </Suspense>
