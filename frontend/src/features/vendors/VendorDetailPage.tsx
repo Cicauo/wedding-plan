@@ -159,21 +159,25 @@ export default function VendorDetailPage() {
       <Card>
         <CardHeader>
           <CardTitle>Jadwal Pembayaran</CardTitle>
-          {/* Real-time unscheduled feedback */}
+          {/* Real-time unscheduled feedback — specific & friendly */}
           {unscheduled > 0 ? (
             <p className="flex items-center gap-1.5 text-sm text-status-overdue-subtle-foreground">
               <CalendarClock className="size-4" />
-              Sisa belum dijadwalkan: <strong className="tabular-nums">{formatRupiah(unscheduled)}</strong>
+              Total terjadwal masih kurang{' '}
+              <strong className="tabular-nums">{formatRupiah(unscheduled)}</strong> dari nilai
+              kontrak <strong className="tabular-nums">{formatRupiah(vendor.totalContract)}</strong>.
             </p>
           ) : unscheduled < 0 ? (
             <p className="flex items-center gap-1.5 text-sm text-status-overdue-subtle-foreground">
               <AlertCircle className="size-4" />
-              Total termin melebihi kontrak sebesar{' '}
-              <strong className="tabular-nums">{formatRupiah(Math.abs(unscheduled))}</strong>
+              Waduh, total termin melebihi kontrak{' '}
+              <strong className="tabular-nums">{formatRupiah(vendor.totalContract)}</strong> sebesar{' '}
+              <strong className="tabular-nums">{formatRupiah(Math.abs(unscheduled))}</strong>. Cek
+              lagi yuk.
             </p>
           ) : (
-            <p className="text-sm text-status-paid-subtle-foreground">
-              Semua nilai kontrak sudah dijadwalkan. ✓
+            <p className="flex items-center gap-1.5 text-sm text-status-paid-subtle-foreground">
+              ✅ Semua pembayaran sudah terjadwal rapi.
             </p>
           )}
         </CardHeader>
@@ -183,18 +187,25 @@ export default function VendorDetailPage() {
             <AddPaymentTermForm
               vendorId={vendor.id}
               suggestedAmount={unscheduled > 0 ? unscheduled : undefined}
+              remainingToSchedule={unscheduled > 0 ? unscheduled : 0}
+              totalContract={vendor.totalContract}
             />
           </div>
 
           {/* Term list */}
           {terms.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              Belum ada termin. Tambahkan jadwal pembayaran pertama di atas.
-            </p>
+            <div className="py-8 text-center">
+              <p className="text-sm font-medium text-foreground">
+                Yuk, atur jadwal pembayaran pertamamu. 💳
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Tambahkan termin di form atas—tiap termin otomatis jadi tugas di To-Do.
+              </p>
+            </div>
           ) : (
             <div className="space-y-2">
               {terms.map((term) => (
-                <PaymentTermRow key={term.id} term={term} />
+                <PaymentTermRow key={term.id} term={term} vendorName={vendor.name} />
               ))}
             </div>
           )}

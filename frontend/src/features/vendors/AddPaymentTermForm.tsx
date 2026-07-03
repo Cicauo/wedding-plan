@@ -1,12 +1,13 @@
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Loader2, Plus } from 'lucide-react'
+import { AlertTriangle, Loader2, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { FieldError } from '@/components/ui/field-error'
 import { DatePicker } from '@/components/ui/date-picker'
 import { CurrencyInput } from '@/components/wedding/currency-input'
+import { formatRupiah } from '@/lib/currency'
 import { useAddPaymentTerm } from './hooks'
 import { paymentTermFormSchema, type PaymentTermFormValues } from './term-schema'
 
@@ -20,14 +21,32 @@ interface AddPaymentTermFormProps {
   vendorId: string
   /** Prefill amount — e.g. the remaining unscheduled amount. */
   suggestedAmount?: number
+  /**
+   * How much of the contract is still unscheduled (total − sum of
+   * existing terms). Used for friendly, specific over-budget
+   * validation on the amount the user is typing.
+   */
+  remainingToSchedule: number
+  /** Total contract value — for the "melebihi kontrak" message. */
+  totalContract: number
 }
 
 /**
  * AddPaymentTermForm — inline form to add a payment term on the
  * vendor detail page. RHF + Zod. Resets on success so the user can
  * add several terms in a row.
+ *
+ * Phase 3: friendly, specific inline validation. If the entered
+ * amount would push scheduled terms OVER the contract value, we
+ * guide instead of blame — showing exactly by how much and blocking
+ * submit so bad data never reaches the store.
  */
-export function AddPaymentTermForm({ vendorId, suggestedAmount }: AddPaymentTermFormProps) {
+export function AddPaymentTermForm({
+  vendorId,
+  suggestedAmount,
+  remainingToSchedule,
+  totalContract,
+}: AddPaymentTermFormProps) {
   const addTerm = useAddPaymentTerm(vendorId)
 
   const {
@@ -35,14 +54,24 @@ export function AddPaymentTermForm({ vendorId, suggestedAmount }: AddPaymentTerm
     handleSubmit,
     control,
     reset,
+    watch,
     formState: { errors },
   } = useForm<PaymentTermFormValues>({
     resolver: zodResolver(paymentTermFormSchema),
     defaultValues: { name: '', amount: 0, dueDate: '' },
   })
 
+  // Live over-budget check as the user types the amount.
+  const enteredAmount = watch('amount') || 0
+  const overBy = enteredAmount - remainingToSchedule
+  const isOverBudget = overBy > 0
+
   const onSubmit = (values: PaymentTermFormValues) => {
-    addTerm.mutate(values, { onSuccess: () => reset({ name: '', amount: 0, dueDate: '' }) })
+    // Guard: never let scheduled terms exceed the contract.
+    if (values.amount > remainingToSchedule) return
+    addTerm.mutate(values, {
+      onSuccess: () => reset({ name: '', amount: 0, dueDate: '' }),
+    })
   }
 
   return (
@@ -74,12 +103,28 @@ export function AddPaymentTermForm({ vendorId, suggestedAmount }: AddPaymentTerm
               id="term-amount"
               value={field.value}
               onValueChange={field.onChange}
-              placeholder={suggestedAmount ? `Rp ${suggestedAmount.toLocaleString('id-ID')}` : undefined}
-              aria-invalid={!!errors.amount}
+              placeholder={
+                suggestedAmount ? `Rp ${suggestedAmount.toLocaleString('id-ID')}` : undefined
+              }
+              aria-invalid={!!errors.amount || isOverBudget}
             />
           )}
         />
         <FieldError message={errors.amount?.message} />
+        {/* Friendly, specific over-budget guidance (inline, real-time) */}
+        {!errors.amount && isOverBudget && (
+          <p
+            className="flex items-start gap-1.5 text-sm text-status-overdue-subtle-foreground"
+            role="alert"
+          >
+            <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
+            <span>
+              Waduh, jumlah ini bikin total termin melebihi kontrak{' '}
+              <strong className="tabular-nums">{formatRupiah(totalContract)}</strong> sebesar{' '}
+              <strong className="tabular-nums">{formatRupiah(overBy)}</strong>. Cek lagi yuk.
+            </span>
+          </p>
+        )}
       </div>
 
       {/* Due date */}
@@ -102,7 +147,11 @@ export function AddPaymentTermForm({ vendorId, suggestedAmount }: AddPaymentTerm
       {/* Submit */}
       <div className="space-y-1.5">
         <Label className="hidden sm:block sm:opacity-0">.</Label>
-        <Button type="submit" disabled={addTerm.isPending} className="w-full sm:w-auto">
+        <Button
+          type="submit"
+          disabled={addTerm.isPending || isOverBudget}
+          className="w-full sm:w-auto"
+        >
           {addTerm.isPending ? <Loader2 className="animate-spin" /> : <Plus />}
           Tambah
         </Button>

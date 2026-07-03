@@ -15,6 +15,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { EmptyState } from '@/components/wedding/empty-state'
 import { StatusPill } from '@/components/wedding/status-pill'
 import { formatRupiah } from '@/lib/currency'
+import { celebratePaid, celebrateUndone } from '@/lib/celebration'
 import { VENDOR_CATEGORY_LABELS, type PaymentTask } from '@/types/domain'
 import { usePaymentTasks, useToggleTaskDone } from './hooks'
 
@@ -49,11 +50,29 @@ function PaymentTaskItem({ task }: { task: PaymentTask }) {
             >
               {task.title}
             </p>
-            <StatusPill status={task.status} />
+            <StatusPill
+              status={
+                task.urgency.level !== 'none' && !task.done ? task.urgency.level : task.status
+              }
+            />
           </div>
           <p className="mt-0.5 text-sm text-muted-foreground">
             {VENDOR_CATEGORY_LABELS[task.category]} · Jatuh tempo{' '}
             {format(new Date(task.dueDate), 'd MMM yyyy', { locale: idLocale })}
+            {!task.done && task.urgency.label && (
+              <span
+                className={
+                  'ml-1.5 font-medium ' +
+                  (task.urgency.level === 'overdue'
+                    ? 'text-status-overdue-subtle-foreground'
+                    : task.urgency.level === 'soon'
+                      ? 'text-orange-600'
+                      : 'text-muted-foreground')
+                }
+              >
+                · {task.urgency.label}
+              </span>
+            )}
           </p>
         </div>
 
@@ -69,7 +88,21 @@ function PaymentTaskItem({ task }: { task: PaymentTask }) {
             type="button"
             size="sm"
             variant={task.done ? 'secondary' : 'primary'}
-            onClick={() => toggle.mutate({ termId: task.termId, done: !task.done })}
+            onClick={() => {
+              const willBeDone = !task.done
+              toggle.mutate(
+                { termId: task.termId, done: willBeDone },
+                {
+                  onSuccess: () => {
+                    if (willBeDone) {
+                      celebratePaid(task.termName, task.vendorName, task.amount)
+                    } else {
+                      celebrateUndone(task.termName, task.vendorName)
+                    }
+                  },
+                },
+              )
+            }}
             disabled={toggle.isPending}
           >
             {toggle.isPending ? (
@@ -96,6 +129,7 @@ function PaymentTaskItem({ task }: { task: PaymentTask }) {
 }
 
 export default function TodoListPage() {
+  const navigate = useNavigate()
   const { tasks, isLoading, isError, refetch } = usePaymentTasks()
 
   const { pending, done } = useMemo(() => {
@@ -129,8 +163,11 @@ export default function TodoListPage() {
       ) : (tasks?.length ?? 0) === 0 ? (
         <EmptyState
           icon={ClipboardCheck}
-          title="Belum ada tugas pembayaran"
-          description="Tambahkan termin pembayaran di Detail Vendor—tiap termin otomatis muncul di sini sebagai tugas."
+          title="Belum ada pembayaran terjadwal"
+          description="Tambah vendor & jadwal pembayaran untuk mulai."
+          action={
+            <Button onClick={() => navigate('/vendors')}>Ke Vendor</Button>
+          }
         />
       ) : (
         <div className="space-y-6">

@@ -38,10 +38,11 @@ export function DeleteVendorDialog({
     <Dialog open={!!vendorId} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Hapus Vendor?</DialogTitle>
+          <DialogTitle>Hapus {vendorName ?? 'vendor'} ini?</DialogTitle>
           <DialogDescription>
-            Vendor{vendorName ? ` "${vendorName}"` : ''} dan semua termin
-            pembayarannya akan dihapus. Tindakan ini tidak bisa dibatalkan.
+            Semua termin pembayaran, tugas di To-Do, dan alokasi budget yang
+            terkait vendor ini juga akan ikut terhapus. Tindakan ini tidak bisa
+            dibatalkan.
           </DialogDescription>
         </DialogHeader>
 

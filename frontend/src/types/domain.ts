@@ -129,6 +129,63 @@ export function derivePaymentStatus(
   return new Date(term.dueDate) < now ? 'OVERDUE' : 'UNPAID';
 }
 
+/**
+ * Urgency level of an UNPAID term relative to its due date.
+ * Drives visual urgency (pill color) + a human countdown label so
+ * users never miss a payment ("Peace of Mind").
+ *   overdue → past due            (red)
+ *   soon    → due within 3 days   (orange)
+ *   upcoming→ due in 4..7 days     (neutral, but surfaced)
+ *   later   → > 7 days away        (neutral)
+ *   none    → term is already paid
+ */
+export type UrgencyLevel = 'overdue' | 'soon' | 'upcoming' | 'later' | 'none';
+
+export interface Urgency {
+  level: UrgencyLevel;
+  /** Whole days until due (negative = days overdue). */
+  daysUntilDue: number;
+  /** Human label, e.g. "Jatuh tempo 3 hari lagi" / "Terlambat 2 hari". */
+  label: string;
+}
+
+/** Whole-day difference between two dates (date-only, TZ-safe-ish). */
+function daysBetween(from: Date, to: Date): number {
+  const a = Date.UTC(from.getFullYear(), from.getMonth(), from.getDate());
+  const b = Date.UTC(to.getFullYear(), to.getMonth(), to.getDate());
+  return Math.round((b - a) / 86_400_000);
+}
+
+export function deriveUrgency(
+  term: Pick<PaymentTerm, 'status' | 'dueDate'>,
+  now: Date = new Date(),
+): Urgency {
+  if (term.status === 'PAID') {
+    return { level: 'none', daysUntilDue: 0, label: '' };
+  }
+
+  const days = daysBetween(now, new Date(term.dueDate));
+
+  if (days < 0) {
+    const late = Math.abs(days);
+    return {
+      level: 'overdue',
+      daysUntilDue: days,
+      label: late === 0 ? 'Terlambat hari ini' : `Terlambat ${late} hari`,
+    };
+  }
+  if (days === 0) {
+    return { level: 'soon', daysUntilDue: 0, label: 'Jatuh tempo hari ini' };
+  }
+  if (days <= 3) {
+    return { level: 'soon', daysUntilDue: days, label: `Jatuh tempo ${days} hari lagi` };
+  }
+  if (days <= 7) {
+    return { level: 'upcoming', daysUntilDue: days, label: `Jatuh tempo ${days} hari lagi` };
+  }
+  return { level: 'later', daysUntilDue: days, label: `Jatuh tempo ${days} hari lagi` };
+}
+
 /** Aggregate a vendor + its terms into a progress view. */
 export function computeVendorProgress(
   vendor: Vendor,
@@ -187,6 +244,8 @@ export interface PaymentTask {
   /** true when UNPAID and past due. */
   isOverdue: boolean;
   done: boolean;
+  /** Pre-computed urgency (countdown / overdue label). */
+  urgency: Urgency;
 }
 
 /**
@@ -205,6 +264,7 @@ export function derivePaymentTasks(
     const vendor = vendorById.get(term.vendorId);
     if (!vendor) return []; // orphan term (vendor deleted) → no ghost task
     const status = derivePaymentStatus(term, now);
+    const urgency = deriveUrgency(term, now);
     return [
       {
         termId: term.id,
@@ -218,6 +278,7 @@ export function derivePaymentTasks(
         status,
         isOverdue: status === 'OVERDUE',
         done: term.status === 'PAID',
+        urgency,
       },
     ];
   });
