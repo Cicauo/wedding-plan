@@ -1,9 +1,18 @@
+import { lazy, Suspense } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import Home from '@/pages/Home'
-import Dashboard from '@/pages/Dashboard'
-import GuestList from '@/pages/GuestList'
-import DesignSystem from '@/pages/DesignSystem'
+import { Loader2 } from 'lucide-react'
+
+/**
+ * Route-level code splitting: each page is a separate chunk, so the
+ * initial bundle stays lean and heavy deps (day-picker, recharts,
+ * RHF) only load when their route is visited.
+ */
+const Home = lazy(() => import('@/pages/Home'))
+const Dashboard = lazy(() => import('@/pages/Dashboard'))
+const GuestList = lazy(() => import('@/pages/GuestList'))
+const DesignSystem = lazy(() => import('@/pages/DesignSystem'))
+const VendorListPage = lazy(() => import('@/features/vendors/VendorListPage'))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -14,16 +23,27 @@ const queryClient = new QueryClient({
   },
 })
 
+function RouteFallback() {
+  return (
+    <div className="flex min-h-[50vh] items-center justify-center">
+      <Loader2 className="size-6 animate-spin text-muted-foreground" />
+    </div>
+  )
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/guests" element={<GuestList />} />
-          <Route path="/design-system" element={<DesignSystem />} />
-        </Routes>
+        <Suspense fallback={<RouteFallback />}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/guests" element={<GuestList />} />
+            <Route path="/vendors" element={<VendorListPage />} />
+            <Route path="/design-system" element={<DesignSystem />} />
+          </Routes>
+        </Suspense>
       </BrowserRouter>
     </QueryClientProvider>
   )
