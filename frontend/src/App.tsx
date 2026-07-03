@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
+import { Toaster } from 'sonner'
 import { AppNav } from '@/components/wedding/app-nav'
 
 /**
@@ -40,6 +41,12 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AppNav />
+        <Toaster
+          position="top-center"
+          richColors
+          closeButton
+          toastOptions={{ duration: 3_000 }}
+        />
         <Suspense fallback={<RouteFallback />}>
           <Routes>
             <Route path="/" element={<Home />} />
