@@ -155,3 +155,145 @@ export function computeVendorProgress(
     hasOverdue,
   };
 }
+
+// ------------------------------------------------------------
+// Phase 2 — Magic Automation (DERIVED views)
+// ------------------------------------------------------------
+// To-Do tasks and Budget entries are NOT stored. They are pure
+// projections of vendors + payment terms. This guarantees "one
+// status, many windows": marking a term paid anywhere updates
+// every view because there is only ever ONE piece of state
+// (PaymentTerm.status). Deleting a vendor/term cannot leave a
+// "ghost task" because nothing was duplicated.
+
+/**
+ * A payment task shown in the To-Do list. Derived 1:1 from a
+ * PaymentTerm. NON-EDITABLE by design — the source of truth is
+ * the vendor detail page. The To-Do is only a window + a place to
+ * mark done (which flips the underlying PaymentTerm.status).
+ */
+export interface PaymentTask {
+  /** Same id as the source PaymentTerm — the single source of truth. */
+  termId: string;
+  vendorId: string;
+  vendorName: string;
+  category: VendorCategory;
+  /** e.g. "Bayar Pelunasan ke Griya Dekorasi". */
+  title: string;
+  termName: string;
+  amount: Rupiah;
+  dueDate: ISODate;
+  status: PaymentStatus;
+  /** true when UNPAID and past due. */
+  isOverdue: boolean;
+  done: boolean;
+}
+
+/**
+ * Project vendors + terms into a sorted To-Do list of payment tasks.
+ * Sort: overdue first, then by due date ascending; done tasks sink
+ * to the bottom.
+ */
+export function derivePaymentTasks(
+  vendors: Vendor[],
+  terms: PaymentTerm[],
+  now: Date = new Date(),
+): PaymentTask[] {
+  const vendorById = new Map(vendors.map((v) => [v.id, v]));
+
+  const tasks: PaymentTask[] = terms.flatMap((term) => {
+    const vendor = vendorById.get(term.vendorId);
+    if (!vendor) return []; // orphan term (vendor deleted) → no ghost task
+    const status = derivePaymentStatus(term, now);
+    return [
+      {
+        termId: term.id,
+        vendorId: vendor.id,
+        vendorName: vendor.name,
+        category: vendor.category,
+        title: `Bayar ${term.name} ke ${vendor.name}`,
+        termName: term.name,
+        amount: term.amount,
+        dueDate: term.dueDate,
+        status,
+        isOverdue: status === 'OVERDUE',
+        done: term.status === 'PAID',
+      },
+    ];
+  });
+
+  return tasks.sort((a, b) => {
+    // Done tasks always last.
+    if (a.done !== b.done) return a.done ? 1 : -1;
+    // Overdue before on-time.
+    if (a.isOverdue !== b.isOverdue) return a.isOverdue ? -1 : 1;
+    // Then earliest due date first.
+    return a.dueDate.localeCompare(b.dueDate);
+  });
+}
+
+/** One category row in the Budget Planner. */
+export interface BudgetCategory {
+  category: VendorCategory;
+  label: string;
+  /** SUM of vendor totalContract in this category (committed). */
+  planned: Rupiah;
+  /** SUM of PAID term amounts in this category (money actually out). */
+  actual: Rupiah;
+  vendorCount: number;
+}
+
+/** Whole-plan budget summary + per-category breakdown. */
+export interface BudgetSummary {
+  totalPlanned: Rupiah;
+  totalActual: Rupiah;
+  categories: BudgetCategory[];
+}
+
+/**
+ * Project vendors + terms into a Budget view.
+ * - Planned  = commitment = SUM(vendor.totalContract) per category.
+ * - Actual   = money spent = SUM(term.amount where status === PAID).
+ * Every vendor contributes a "planned expense" automatically the
+ * moment it is created; actual accrues as terms are marked paid.
+ */
+export function deriveBudget(
+  vendors: Vendor[],
+  terms: PaymentTerm[],
+): BudgetSummary {
+  const byCategory = new Map<VendorCategory, BudgetCategory>();
+
+  for (const vendor of vendors) {
+    const row =
+      byCategory.get(vendor.category) ??
+      ({
+        category: vendor.category,
+        label: VENDOR_CATEGORY_LABELS[vendor.category],
+        planned: 0,
+        actual: 0,
+        vendorCount: 0,
+      } satisfies BudgetCategory);
+    row.planned += vendor.totalContract;
+    row.vendorCount += 1;
+    byCategory.set(vendor.category, row);
+  }
+
+  const vendorCategory = new Map(vendors.map((v) => [v.id, v.category]));
+  for (const term of terms) {
+    if (term.status !== 'PAID') continue;
+    const cat = vendorCategory.get(term.vendorId);
+    if (!cat) continue; // orphan term
+    const row = byCategory.get(cat);
+    if (row) row.actual += term.amount;
+  }
+
+  const categories = [...byCategory.values()].sort(
+    (a, b) => b.planned - a.planned,
+  );
+
+  return {
+    totalPlanned: categories.reduce((s, c) => s + c.planned, 0),
+    totalActual: categories.reduce((s, c) => s + c.actual, 0),
+    categories,
+  };
+}
