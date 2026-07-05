@@ -1,6 +1,7 @@
-import { CreditCard, LayoutGrid, LogOut, Store, UserPlus, Wallet } from 'lucide-react'
+import { CreditCard, LayoutGrid, LogOut, UserPlus, Wallet } from 'lucide-react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { Avatar } from '@/components/wedding/avatar'
+import { Button } from '@/components/ui/button'
 import { useCurrentUser, useLogout } from '@/features/auth/hooks'
 import { useCurrentWeddingPlan, usePlanMembers } from '@/features/wedding/hooks'
 import { InviteDialog } from '@/features/wedding/InviteDialog'
@@ -13,9 +14,9 @@ import {
 } from '@/components/ui/dropdown-menu'
 
 const LINKS = [
-  { to: '/vendors', label: 'Vendor', icon: Store },
-  { to: '/todos', label: 'To-Do', icon: CreditCard },
-  { to: '/budget', label: 'Budget', icon: Wallet },
+  { to: '/', label: 'Expense Hub', icon: LayoutGrid },
+  { to: '/planning/tasks', label: 'Daftar Pembayaran', icon: CreditCard },
+  { to: '/planning/budget', label: 'Budget', icon: Wallet },
 ]
 
 export function AppNav() {
@@ -65,9 +66,9 @@ export function AppNav() {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="outline-none">
+              <Button variant="ghost" size="icon" className="size-9 outline-none" aria-label="Menu pengguna">
                 <Avatar user={user} />
-              </button>
+              </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <div className="px-2 py-1.5 text-sm">

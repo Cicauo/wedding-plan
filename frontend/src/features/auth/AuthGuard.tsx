@@ -1,7 +1,7 @@
 import { Navigate, Outlet } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import { useCurrentUser } from '@/features/auth/hooks'
-import { AppNav } from '@/components/layout/AppNav'
+import { AppNav } from '@/components/wedding/AppNav'
 import { Toaster } from '@/components/ui/sonner'
 
 /**

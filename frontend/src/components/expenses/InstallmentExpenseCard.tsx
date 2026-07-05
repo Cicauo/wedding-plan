@@ -17,7 +17,7 @@ const InstallmentExpenseCard = ({ expense }: { expense: InstallmentExpense }) =>
     <Card>
       <CardHeader>
         <div className="flex justify-between items-start">
-          <CardTitle className="text-lg font-semibold">{expense.name}</CardTitle>
+          <CardTitle className="text-lg font-semibold truncate">{expense.name}</CardTitle>
           <div className="text-xs font-medium text-muted-foreground bg-secondary px-2 py-1 rounded-full">
             {categoryLabel}
           </div>
@@ -33,7 +33,7 @@ const InstallmentExpenseCard = ({ expense }: { expense: InstallmentExpense }) =>
         </div>
         <div className="flex justify-between items-baseline">
           <span className="text-sm text-muted-foreground">Sisa Tagihan</span>
-          <span className="text-xl font-bold text-foreground">{formatCurrency(remainingAmount)}</span>
+          <span className="text-xl font-bold text-foreground break-all">{formatCurrency(remainingAmount)}</span>
         </div>
         <div className="flex justify-between items-baseline text-sm">
           <span className="text-muted-foreground">Total Kontrak</span>

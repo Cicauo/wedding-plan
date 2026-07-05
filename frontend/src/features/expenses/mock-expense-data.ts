@@ -54,4 +54,18 @@ export const MOCK_EXPENSES: Expense[] = [
     createdAt: '2024-07-04',
     updatedAt: '2024-07-10',
   },
+  {
+    id: 'exp_5',
+    weddingPlanId: 'wp_sejati_v1',
+    name: 'Pembayaran DP Gedung Serbaguna Megah Mewah Istana Negara Jakarta Selatan Tahap Pertama Pelunasan & Biaya Tambahan',
+    type: 'installments',
+    categoryId: 'venue',
+    totalAmount: 999999999999,
+    paymentTerms: [
+      { id: 'term_5_1', name: 'DP 1 - Pembayaran Awal Perjanjian Kontrak', amount: 500000000000, dueDate: '2025-06-15', status: 'PAID' },
+      { id: 'term_5_2', name: 'Pelunasan Akhir Setelah Acara Selesai', amount: 499999999999, dueDate: '2025-08-20', status: 'UNPAID' },
+    ],
+    createdAt: '2025-06-01',
+    updatedAt: '2025-06-15',
+  },
 ];
