@@ -2,22 +2,28 @@ import { lazy, Suspense } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
-import { Toaster } from 'sonner'
-import { AppNav } from '@/components/wedding/app-nav'
+import { ThemeProvider } from '@/components/theme-provider'
+import { WeddingPlanProvider } from '@/features/wedding/WeddingPlanContext'
 
-/**
- * Route-level code splitting: each page is a separate chunk, so the
- * initial bundle stays lean and heavy deps (day-picker, recharts,
- * RHF) only load when their route is visited.
- */
+// Guards & Nav
+import { AuthGuard } from '@/features/auth/AuthGuard'
+import { WeddingGuard } from '@/features/wedding/WeddingGuard'
+
+// Public pages
+const LoginPage = lazy(() => import('@/features/auth/LoginPage'))
+const RegisterPage = lazy(() => import('@/features/auth/RegisterPage'))
+
+// Onboarding flow
+const OnboardingSetupPage = lazy(() => import('@/features/wedding/OnboardingSetupPage'))
+const OnboardingInvitePage = lazy(() => import('@/features/wedding/OnboardingInvitePage'))
+
+// Protected pages (lazy-loaded)
 const Home = lazy(() => import('@/pages/Home'))
-const Dashboard = lazy(() => import('@/pages/Dashboard'))
-const GuestList = lazy(() => import('@/pages/GuestList'))
-const DesignSystem = lazy(() => import('@/pages/DesignSystem'))
-const VendorListPage = lazy(() => import('@/features/vendors/VendorListPage'))
-const VendorDetailPage = lazy(() => import('@/features/vendors/VendorDetailPage'))
+const ExpenseDetailPage = lazy(() => import('@/pages/ExpenseDetailPage'))
 const TodoListPage = lazy(() => import('@/features/planning/TodoListPage'))
 const BudgetPage = lazy(() => import('@/features/planning/BudgetPage'))
+const DesignSystem = lazy(() => import('@/pages/DesignSystem'))
+
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -30,36 +36,48 @@ const queryClient = new QueryClient({
 
 function RouteFallback() {
   return (
-    <div className="flex min-h-[50vh] items-center justify-center">
-      <Loader2 className="size-6 animate-spin text-muted-foreground" />
+    <div className="flex min-h-screen items-center justify-center">
+      <Loader2 className="size-8 animate-spin text-muted-foreground" />
     </div>
   )
 }
 
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AppNav />
-        <Toaster
-          position="top-center"
-          richColors
-          closeButton
-          toastOptions={{ duration: 3_000 }}
-        />
-        <Suspense fallback={<RouteFallback />}>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/guests" element={<GuestList />} />
-            <Route path="/vendors" element={<VendorListPage />} />
-            <Route path="/vendors/:vendorId" element={<VendorDetailPage />} />
-            <Route path="/todos" element={<TodoListPage />} />
-            <Route path="/budget" element={<BudgetPage />} />
-            <Route path="/design-system" element={<DesignSystem />} />
-          </Routes>
-        </Suspense>
-      </BrowserRouter>
-    </QueryClientProvider>
+    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+      <QueryClientProvider client={queryClient}>
+        <WeddingPlanProvider>
+            <BrowserRouter>
+              <Suspense fallback={<RouteFallback />}>
+                <Routes>
+                  {/* Public routes */}
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="/register" element={<RegisterPage />} />
+
+                  {/* Protected routes — requires auth. AuthGuard renders
+                      AppNav + Toaster chrome around the nested routes. */}
+                  <Route element={<AuthGuard />}>
+                    {/* Routes accessible only when a wedding plan is NOT set */}
+                    <Route path="/onboarding/setup" element={<OnboardingSetupPage />} />
+                    <Route path="/onboarding/invite" element={<OnboardingInvitePage />} />
+
+                    {/* Routes accessible only when a wedding plan IS set */}
+                    <Route element={<WeddingGuard />}>
+                      <Route path="/" element={<Home />} />
+                      <Route path="/expenses/:id" element={<ExpenseDetailPage />} />
+                      <Route path="/planning/tasks" element={<TodoListPage />} />
+                      <Route path="/planning/budget" element={<BudgetPage />} />
+                      <Route path="/design-system" element={<DesignSystem />} />
+                    </Route>
+                  </Route>
+
+                  {/* Catch-all: redirect to login */}
+                  <Route path="*" element={<LoginPage />} />
+                </Routes>
+              </Suspense>
+            </BrowserRouter>
+        </WeddingPlanProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
   )
 }
