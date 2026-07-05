@@ -1,4 +1,4 @@
-import { Plus, PartyPopper } from 'lucide-react';
+import { Plus, PartyPopper, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,7 @@ export default function HomePage() {
   const [isAddOpen, setIsAddOpen] = useState(false);
 
   if (isLoading) {
-    return <div className="mx-auto max-w-5xl px-6 py-8 text-muted-foreground">Memuat...</div>;
+    return (<div className="mx-auto max-w-5xl flex items-center justify-center px-6 py-16"><Loader2 className="size-6 animate-spin text-muted-foreground" /></div>);
   }
 
   const expenses = weddingPlan?.expenses ?? [];

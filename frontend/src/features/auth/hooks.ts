@@ -20,8 +20,9 @@ export function useLogin() {
     mutationFn: ({ email, password }: { email: string; password: string }) => login(email, password),
     onSuccess: ({ user }) => {
       qc.setQueryData(AUTH_KEY, user)
-      // Navigate to plan selection or main app — will be handled by WeddingGuard
-      navigate('/')
+      // Use back or go to the page the user was trying to access before auth guard kicked in.
+      const from = (window.history.state?.usr as { from?: string })?.from || '/'
+      navigate(from, { replace: true })
     },
   })
 }

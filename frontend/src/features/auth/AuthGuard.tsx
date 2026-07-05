@@ -1,4 +1,4 @@
-import { Navigate, Outlet } from 'react-router-dom'
+import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import { useCurrentUser } from '@/features/auth/hooks'
 import { AppNav } from '@/components/wedding/AppNav'
@@ -11,6 +11,7 @@ import { Toaster } from '@/components/ui/sonner'
  */
 export function AuthGuard() {
   const { data: user, isLoading } = useCurrentUser()
+  const location = useLocation()
 
   if (isLoading) {
     return (
@@ -21,7 +22,7 @@ export function AuthGuard() {
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />
+    return <Navigate to="/login" state={{ from: location.pathname + location.search }} replace />
   }
 
   return (

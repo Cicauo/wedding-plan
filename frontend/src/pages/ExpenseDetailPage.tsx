@@ -15,6 +15,10 @@ import type { InstallmentExpense, OneTimeExpense, PaymentTerm } from '@/types/do
 import { useWeddingPlan } from '@/features/wedding/WeddingPlanContext';
 import { useDeleteExpense, useToggleOneTimeStatus } from '@/features/expenses/hooks';
 import { useToggleTaskDone } from '@/features/planning/hooks';
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
+import { useState } from 'react';
 
 function isOverdue(iso: string, status: string) {
   return status === 'UNPAID' && new Date(iso) < new Date();
@@ -96,6 +100,7 @@ export default function ExpenseDetailPage() {
   const navigate = useNavigate();
   const { weddingPlan, isLoading } = useWeddingPlan();
   const deleteExpense = useDeleteExpense();
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
 
   if (isLoading) {
     return (
@@ -123,8 +128,7 @@ export default function ExpenseDetailPage() {
   const category = EXPENSE_CATEGORIES.find((c) => c.id === expense.categoryId);
 
   const handleDelete = () => {
-    if (!window.confirm(`Hapus "${expense.name}"? Semua tugas & alokasi budget terkait ikut terhapus.`)) return;
-    deleteExpense.mutate(expense.id, { onSuccess: () => navigate('/') });
+    setDeleteConfirm(true);
   };
 
   return (
@@ -181,6 +185,38 @@ export default function ExpenseDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Delete confirmation dialog — replaces native window.confirm */}
+      <Dialog open={deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(false)}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+              <Trash2 className="h-5 w-5" />
+            </div>
+            <DialogTitle>Hapus pengeluaran?</DialogTitle>
+            <DialogDescription>
+              <span className="font-semibold text-foreground">{expense.name}</span> akan dihapus beserta semua
+              tugas & alokasi budget terkait. Tindakan ini tidak bisa dibatalkan.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setDeleteConfirm(false)}>
+              Batal
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                setDeleteConfirm(false);
+                deleteExpense.mutate(expense.id, { onSuccess: () => navigate('/') });
+              }}
+              disabled={deleteExpense.isPending}
+            >
+              {deleteExpense.isPending ? <Loader2 className="animate-spin" /> : <Trash2 className="size-4" />}
+              Hapus
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

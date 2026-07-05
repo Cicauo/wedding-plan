@@ -9,7 +9,7 @@ import { InstallmentExpenseForm } from "./InstallmentExpenseForm";
 import { useCreateExpense } from "@/features/expenses/hooks";
 import { useWeddingPlan } from "@/features/wedding/WeddingPlanContext";
 import { formatCurrency } from "@/lib/utils";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Loader2 } from "lucide-react";
 import type { ExpenseType, CreateExpensePayload } from "@/types/domain";
 
 const expenseTypes: { label: string; value: ExpenseType }[] = [
@@ -93,7 +93,7 @@ export function AddExpenseModal({ isOpen, onOpenChange }: AddExpenseModalProps) 
               Batal
             </Button>
             <Button type="button" onClick={handleFormSubmit} disabled={createExpense.isPending}>
-              {createExpense.isPending ? "Menyimpan..." : "Simpan"}
+              {createExpense.isPending ? <><Loader2 className="mr-1 size-4 animate-spin" />Menyimpan...</> : "Simpan"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -122,7 +122,7 @@ export function AddExpenseModal({ isOpen, onOpenChange }: AddExpenseModalProps) 
               onClick={() => pendingPayload && doCreate(pendingPayload)}
               disabled={createExpense.isPending}
             >
-              {createExpense.isPending ? "Menyimpan..." : "Ya, Lanjutkan"}
+              {createExpense.isPending ? <><Loader2 className="mr-1 size-4 animate-spin" />Menyimpan...</> : "Ya, Lanjutkan"}
             </Button>
           </DialogFooter>
         </DialogContent>

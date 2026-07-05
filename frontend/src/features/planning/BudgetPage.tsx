@@ -15,7 +15,7 @@ function StatBox({ label, value, icon: Icon, accent }: { label: string; value: s
             <Icon className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-            <div className={`text-2xl font-bold ${accent === 'actual' ? 'text-green-500' : 'text-foreground'}`}>
+            <div className={`text-2xl font-bold ${accent === 'actual' ? 'text-emerald-600' : 'text-foreground'}`}>
                 {value}
             </div>
         </CardContent>
@@ -37,7 +37,7 @@ function CategoryRow({ row }: { row: BudgetCategory }) {
       </div>
 
       <div className="mt-2 flex justify-between text-sm text-muted-foreground">
-        <span>Terpakai <strong className="font-semibold text-green-500">{formatCurrency(row.actual)}</strong></span>
+        <span>Terpakai <strong className="font-semibold text-emerald-600">{formatCurrency(row.actual)}</strong></span>
         <span>Rencana <strong className="font-semibold text-foreground">{formatCurrency(row.planned)}</strong></span>
       </div>
     </div>
@@ -75,7 +75,7 @@ export default function BudgetPage() {
           <p className="text-sm text-muted-foreground">
             Dari budget <strong className="text-foreground">{formatCurrency(budget.totalBudget)}</strong>, 
             kamu berencana membelanjakan <strong className="text-foreground">{formatCurrency(budget.totalPlanned)}</strong>, 
-            dan sudah terpakai <strong className="text-green-500">{formatCurrency(budget.totalActual)}</strong>.
+            dan sudah terpakai <strong className="text-emerald-600">{formatCurrency(budget.totalActual)}</strong>.
           </p>
 
           <Card>

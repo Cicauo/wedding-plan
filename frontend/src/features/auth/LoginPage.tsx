@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState } from 'react';
 import { Link } from 'react-router-dom'
 import { Loader2, LogIn, Heart } from 'lucide-react'
 import { Button } from '@/components/ui/button'

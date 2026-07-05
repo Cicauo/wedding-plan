@@ -1,18 +1,11 @@
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { StatusPill } from "@/components/wedding/status-pill";
 import { EXPENSE_CATEGORIES } from "@/types/domain";
 import { formatCurrency, cn } from "@/lib/utils";
 import type { OneTimeExpense } from "@/types/domain";
 
 const OneTimeExpenseCard = ({ expense }: { expense: OneTimeExpense }) => {
   const categoryLabel = EXPENSE_CATEGORIES.find(c => c.id === expense.categoryId)?.name || 'Lain-lain';
-
-  const statusMap = {
-    PAID: { label: "Lunas", variant: "success" as const },
-    UNPAID: { label: "Belum Lunas", variant: "destructive" as const },
-  };
-
-  const { label, variant } = statusMap[expense.paymentStatus];
 
   return (
     <Card>
@@ -25,10 +18,10 @@ const OneTimeExpenseCard = ({ expense }: { expense: OneTimeExpense }) => {
         </div>
       </CardHeader>
       <CardContent className="flex justify-between items-center gap-4">
-        <span className={cn("text-lg font-bold truncate", variant === "success" ? "text-green-500" : "text-destructive")}>
+        <span className={cn("text-lg font-bold truncate", expense.paymentStatus === "PAID" ? "text-emerald-600" : "text-destructive")}>
           {formatCurrency(expense.totalAmount)}
         </span>
-        <Badge variant={variant}>{label}</Badge>
+        <StatusPill status={expense.paymentStatus} dueDate={new Date(expense.dueDate)} />
       </CardContent>
       <CardFooter>
         <p className="text-xs text-muted-foreground">Diperbarui pada {new Date(expense.updatedAt).toLocaleDateString('id-ID')}</p>
