@@ -1,91 +1,138 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import {
-  deriveBudget,
-  derivePaymentTasks,
-  type BudgetSummary,
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useWeddingPlan } from '@/features/wedding/WeddingPlanContext';
+import type { Expense, WeddingPlan } from '@/types/domain';
+import { 
+  type BudgetSummary, 
   type PaymentTask,
-} from '@/types/domain'
-import { listPaymentTerms, listVendors, setPaymentTermStatus } from '@/features/vendors/api'
+  deriveBudgetFromExpenses,
+  deriveTasksFromExpenses
+} from '@/types/domain-derivatives';
+import { setPaymentTermStatus, setOneTimeExpenseStatus } from '@/features/expenses/api';
+import { toast } from 'sonner';
+
+// ============================================================
+// DERIVED DATA HOOKS (for To-Do List & Budget Page)
+// These hooks derive their data from the central `useWeddingPlan` context.
+// ============================================================
 
 /**
- * Shared query keys — MUST match the vendor feature's keys so all
- * modules read the same cache. This is what makes Phase 2 "magic"
- * work: To-Do, Budget, and Vendor Detail are all windows onto the
- * same two queries. Invalidate once, every view updates.
- */
-const KEYS = {
-  vendors: ['vendors'] as const,
-  paymentTerms: ['payment-terms'] as const,
-}
-
-function useVendorsAndTerms() {
-  const vendorsQuery = useQuery({ queryKey: KEYS.vendors, queryFn: listVendors })
-  const termsQuery = useQuery({ queryKey: KEYS.paymentTerms, queryFn: listPaymentTerms })
-  return {
-    vendors: vendorsQuery.data,
-    terms: termsQuery.data,
-    isLoading: vendorsQuery.isLoading || termsQuery.isLoading,
-    isError: vendorsQuery.isError || termsQuery.isError,
-    refetch: () => {
-      vendorsQuery.refetch()
-      termsQuery.refetch()
-    },
-  }
-}
-
-// ------------------------------------------------------------
-// To-Do List (derived payment tasks)
-// ------------------------------------------------------------
-
-/**
- * usePaymentTasks — the To-Do list, DERIVED from vendors + terms.
- * Never stored. Marking a task done flips the underlying
- * PaymentTerm.status via the SAME mutation used on the vendor
- * detail page, so status stays consistent everywhere.
+ * usePaymentTasks — Provides a list of all upcoming and overdue payments.
+ * This is DERIVED from the `expenses` array in the current wedding plan.
  */
 export function usePaymentTasks() {
-  const { vendors, terms, isLoading, isError, refetch } = useVendorsAndTerms()
+  const { weddingPlan, isLoading, isError, refetch } = useWeddingPlan();
 
-  const tasks: PaymentTask[] | undefined =
-    vendors && terms ? derivePaymentTasks(vendors, terms) : undefined
+  const tasks: PaymentTask[] | undefined = weddingPlan
+    ? deriveTasksFromExpenses(weddingPlan.expenses)
+    : undefined;
 
-  return { tasks, isLoading, isError, refetch }
+  return { tasks, isLoading, isError, refetch };
 }
 
 /**
- * useToggleTaskDone — mark a payment task done/undone. This is the
- * cross-module two-way sync: it calls setPaymentTermStatus (single
- * source of truth) and invalidates the shared queries so the vendor
- * detail summary, progress bar, and budget all update at once.
- */
-export function useToggleTaskDone() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: ({ termId, done }: { termId: string; done: boolean }) =>
-      setPaymentTermStatus(termId, done ? 'PAID' : 'UNPAID'),
-    onSuccess: async () => {
-      await Promise.all([
-        qc.invalidateQueries({ queryKey: KEYS.vendors }),
-        qc.invalidateQueries({ queryKey: KEYS.paymentTerms }),
-      ])
-    },
-  })
-}
-
-// ------------------------------------------------------------
-// Budget Planner (derived planned vs actual)
-// ------------------------------------------------------------
-
-/**
- * useBudget — Budget Planner view, DERIVED from vendors + terms.
- * Planned = SUM(vendor contracts) per category (auto-added when a
- * vendor is created). Actual = SUM(paid terms) per category.
+ * useBudget — Provides a summary of the budget status by category.
+ * This is DERIVED from the `expenses` array in the current wedding plan.
  */
 export function useBudget() {
-  const { vendors, terms, isLoading, isError, refetch } = useVendorsAndTerms()
+  const { weddingPlan, isLoading, isError, refetch } = useWeddingPlan();
 
-  const budget: BudgetSummary | undefined =
-    vendors && terms ? deriveBudget(vendors, terms) : undefined
+  const budget: BudgetSummary | undefined = weddingPlan
+    ? deriveBudgetFromExpenses(weddingPlan.expenses, weddingPlan.totalBudget)
+    : undefined;
 
-  return { budget, isLoading, isError, refetch }
+  return { budget, isLoading, isError, refetch };
+}
+
+
+// ============================================================
+// MUTATIONS
+// ============================================================
+
+/**
+ * useToggleTaskDone — Marks a payment task as PAID or UNPAID.
+ *
+ * A "task" can back either a ONE-TIME expense (termId === expenseId, no real
+ * term) or a single installment TERM. We look up the parent expense to route
+ * to the correct API so one-time payments don't hit the installment-only path.
+ *
+ * OPTIMISTIC UI: onMutate patches the cached wedding-plan instantly (status +
+ * re-derived summary) so the tap feels immediate. onError rolls back to the
+ * snapshot; onSettled invalidates to reconcile with the server.
+ */
+export function useToggleTaskDone() {
+  const queryClient = useQueryClient();
+  const { weddingPlan } = useWeddingPlan();
+  const queryKey = ['wedding-plan', 'wp_sejati_v1'];
+
+  return useMutation({
+    mutationFn: async ({ expenseId, termId, status }: { expenseId: string; termId: string; status: 'PAID' | 'UNPAID' }): Promise<void> => {
+      const expense = weddingPlan?.expenses.find((e) => e.id === expenseId);
+      if (expense?.type === 'one-time') {
+        await setOneTimeExpenseStatus(expenseId, status);
+        return;
+      }
+      await setPaymentTermStatus(expenseId, termId, status);
+    },
+
+    // Optimistic update — patch the cache before the server responds.
+    onMutate: async ({ expenseId, termId, status }) => {
+      await queryClient.cancelQueries({ queryKey });
+      const previous = queryClient.getQueryData<WeddingPlan>(queryKey);
+
+      queryClient.setQueryData<WeddingPlan>(queryKey, (old) => {
+        if (!old) return old;
+        const expenses = old.expenses.map((e): Expense => {
+          if (e.id !== expenseId) return e;
+          if (e.type === 'one-time') {
+            return { ...e, paymentStatus: status };
+          }
+          return {
+            ...e,
+            paymentTerms: e.paymentTerms.map((t) =>
+              t.id === termId ? { ...t, status } : t,
+            ),
+          };
+        });
+        return { ...old, expenses, summary: recomputeSummary(old.totalBudget, expenses) };
+      });
+
+      return { previous };
+    },
+
+    onError: (error, _vars, context) => {
+      // Roll back to the pre-mutation snapshot.
+      if (context?.previous) {
+        queryClient.setQueryData(queryKey, context.previous);
+      }
+      toast.error('Gagal memperbarui status pembayaran', {
+        description: error.message,
+      });
+    },
+
+    onSettled: () => {
+      // Reconcile with the server regardless of outcome.
+      queryClient.invalidateQueries({ queryKey: ['wedding-plan'] });
+    },
+  });
+}
+
+/**
+ * Re-derives budget figures from expenses — mirror of the server's computeSummary,
+ * kept in sync so optimistic updates show the same numbers as the eventual refetch.
+ */
+function recomputeSummary(totalBudget: number, expenses: Expense[]) {
+  const totalExpenses = expenses.reduce((sum, e) => sum + e.totalAmount, 0);
+  const totalPaid = expenses.reduce((sum, e) => {
+    if (e.type === 'one-time') {
+      return e.paymentStatus === 'PAID' ? sum + e.totalAmount : sum;
+    }
+    const paid = e.paymentTerms.filter((t) => t.status === 'PAID').reduce((s, t) => s + t.amount, 0);
+    return sum + paid;
+  }, 0);
+  return {
+    totalExpenses,
+    totalPaid,
+    remainingBalance: totalBudget - totalExpenses,
+    completionPercentage: totalExpenses > 0 ? Math.round((totalPaid / totalExpenses) * 100) : 0,
+  };
 }

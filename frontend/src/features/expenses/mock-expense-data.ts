@@ -1,0 +1,57 @@
+import type { Expense } from '@/types/domain';
+
+export const MOCK_EXPENSES: Expense[] = [
+  {
+    id: 'exp_1',
+    weddingPlanId: 'wp_sejati_v1',
+    name: 'Gedung & Venue',
+    type: 'installments',
+    categoryId: 'venue',
+    totalAmount: 75000000,
+    paymentTerms: [
+      { id: 'term_1_1', name: 'DP 1', amount: 25000000, dueDate: '2024-08-01', status: 'PAID' },
+      { id: 'term_1_2', name: 'Cicilan 2', amount: 25000000, dueDate: '2024-10-01', status: 'PAID' },
+      { id: 'term_1_3', name: 'Pelunasan', amount: 25000000, dueDate: '2025-01-15', status: 'UNPAID' },
+    ],
+    createdAt: '2024-07-01',
+    updatedAt: '2024-07-15',
+  },
+  {
+    id: 'exp_2',
+    weddingPlanId: 'wp_sejati_v1',
+    name: 'Katering Makanan',
+    type: 'one-time',
+    categoryId: 'catering',
+    totalAmount: 15000000,
+    paymentStatus: 'UNPAID',
+    dueDate: '2025-01-20',
+    createdAt: '2024-07-02',
+    updatedAt: '2024-07-02',
+  },
+  {
+    id: 'exp_3',
+    weddingPlanId: 'wp_sejati_v1',
+    name: 'Gaun & Jas Pengantin',
+    type: 'installments',
+    categoryId: 'attire',
+    totalAmount: 20000000,
+    paymentTerms: [
+        { id: 'term_3_1', name: 'DP', amount: 10000000, dueDate: '2024-09-10', status: 'PAID' },
+        { id: 'term_3_2', name: 'Fitting & Pelunasan', amount: 10000000, dueDate: '2024-12-20', status: 'UNPAID' },
+    ],
+    createdAt: '2024-07-03',
+    updatedAt: '2024-07-10',
+  },
+    {
+    id: 'exp_4',
+    weddingPlanId: 'wp_sejati_v1',
+    name: 'Fotografer & Videografer',
+    type: 'one-time',
+    categoryId: 'photo_video',
+    totalAmount: 18500000,
+    paymentStatus: 'PAID',
+    dueDate: '2024-07-10',
+    createdAt: '2024-07-04',
+    updatedAt: '2024-07-10',
+  },
+];

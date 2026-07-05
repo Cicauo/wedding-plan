@@ -25,10 +25,11 @@ const buttonVariants = cva(
         link: 'text-primary underline-offset-4 hover:underline',
       },
       size: {
-        sm: 'h-9 px-3 text-xs',
-        default: 'h-10 px-4 py-2',
-        lg: 'h-11 px-6 text-base',
-        icon: 'h-10 w-10',
+        // Touch-friendly minimums (≥44px height where practical) per WCAG 2.5.5 / Apple HIG.
+        sm: 'h-11 px-3.5 text-xs',
+        default: 'h-11 px-4 py-2',
+        lg: 'h-12 px-6 text-base',
+        icon: 'h-11 w-11',
       },
     },
     defaultVariants: {

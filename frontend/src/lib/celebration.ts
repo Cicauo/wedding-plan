@@ -16,6 +16,11 @@ export function fireConfetti() {
   })
 }
 
+/** Generic celebration: a subtle confetti burst. Use for payment completions. */
+export function celebrate() {
+  fireConfetti()
+}
+
 /**
  * Toast + confetti when a term is marked paid.
  * @param termName e.g. "Pelunasan"
